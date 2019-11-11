@@ -1,0 +1,9 @@
+<div>
+    <input class='sas-inp {{adtnlClasses}}' style='{{adtnlStyles}}' type='text' ng-model='filterSearch' ng-keyup='doFilter()' />
+    <div style='width:{{inpBoxDims.width}}px; min-height:100px;' ng-show='hasFocus && ((filteredItems && filteredItems.length)||showNFBox)'>
+            <div ng-repeat='si in filteredItems' class='simple-auto-suggest-suggestion' ng-click='pickItem(si);$event.stopPropagation();' ng-bind-html='hilite(si)'></div>
+            <div ng-if='showNFBox'>
+                {{notFoundText}} <a href='#' ng-click='notFoundFunction(filterSearch)'>Click to add item</a>
+            </div>
+        </div>
+</div>

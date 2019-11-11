@@ -1,0 +1,11 @@
+.simple-auto-suggest-suggestion {
+  background: #fff;
+  transition-duration: 0.2s;
+  cursor: pointer;
+  border: 1px solid #ccc;
+  padding: 2px;
+}
+
+.simple-auto-suggest-suggestion:hover {
+  background: #eee;
+}
