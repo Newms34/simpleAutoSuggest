@@ -19,7 +19,6 @@ const app = angular
         ].map(q=>({name:q,num:Math.ceil(Math.random()*15)}));
         $scope.derp = [];
         $scope.myFilter = (a, f) => {
-            // console.log("filter", a, f);
             if (!f) {
                 return (a && a.length && a) || [];
             }
@@ -31,25 +30,31 @@ const app = angular
             restrict: "E",
             scope: {
                 items:'=simpleAutoItems',
-                subItem: '@simpleAutoSubItem',
                 filterFn:'=simpleAutoFilter',
+                output:'=simpleAutoOutput',
                 adtnlClasses:'@simpleAutoClasses',
                 adtnlStyles:'@simpleAutoStyles',
                 nfText:'@simpleAutoNotFoundText',
-                nfFunc:'=simpleAutoNotFoundFn',
-                output:'=simpleAutoOutput',
+                subItem: '@simpleAutoSubItem',
+                verbose:'@simpleAutoVerbose'
             },
             template: `<div class='sas-cont'>
             <input class='sas-inp {{adtnlClasses}}' style='{{adtnlStyles}}' type='text' ng-model='filterSearch' ng-keyup='doFilter()' />
             <div style='width:{{inpBoxDims.width}}px; min-height:100px;' ng-show='hasFocus && ((filteredItems && filteredItems.length)||showNFBox)'>
-                    <div ng-repeat='si in filteredItems' class='simple-auto-suggest-suggestion' ng-click='pickItem(si);$event.stopPropagation();' ng-bind-html='hilite(si,subItem)'></div>
-                    <div ng-if='showNFBox'>
-                        {{notFoundText}} <a href='#' ng-click='notFoundFunction(filterSearch)'>Click to add item</a>
+                    <div ng-repeat='si in filteredItems' class='simple-auto-suggest-suggestion' ng-click='pickItem(si,$event);$event.stopPropagation();' ng-bind-html='hilite(si,subItem)'></div>
+                    <div ng-if='showNFBox' ng-bind-html='notFoundEvald()'>
+                        
                     </div>
                 </div>
         </div>`,
             link: function (scope, element, attributes) {
-                console.log("ATTRIBUTES", attributes, "ELEMENT", element,'SCOPE',scope);
+                const vc = function(){
+                    if(!scope.verbose){
+                        return false;
+                    }
+                    return console.log(...arguments);
+                };
+                vc("ATTRIBUTES", attributes, "ELEMENT", element,'SCOPE',scope);
                 scope.hasFocus = true;
                 const inpBox = element[0].querySelector(".sas-inp");
                 setTimeout(function () {
@@ -57,11 +62,8 @@ const app = angular
                         .querySelector(".sas-inp")
                         .getBoundingClientRect();
                 }, 1);
-                scope.focFunc = e =>{
-                    console.log('ng fokis',e)
-                }
-                scope.blurFunc = e =>{
-                    console.log('ng blerr',e)
+                scope.notFoundEvald = ()=>{
+                    return $sce.trustAsHtml(scope.nfText)
                 }
                 scope.showNFBox = false;
                 scope.doFilter = () => {
@@ -76,7 +78,7 @@ const app = angular
                             filterOkay &&
                             scope.filterFn(scope.items, scope.filterSearch)) ||
                         null;
-                    console.log(
+                    vc(
                         "FILTERED STOOF", scope.filteredItems,
                         "SEARCH TERM",
                         scope.filterSearch,
@@ -89,26 +91,27 @@ const app = angular
                         (!scope.filteredItems || !scope.filteredItems.length);
                         // scope.$digest();
                 }
-                scope.pickItem = it => {
+                scope.pickItem = (it,me) => {
                     if(scope.output && scope.output!=='null'){
                         //three different possibilities. First, if we're given a function, run dat function. Second, if it's an array, push into array. Thirdly, if neither, just replace
                         if(typeof scope.output==='function'){
-                            console.log('output is fn!')
+                            vc('output is fn!')
                             scope.output(it);
                         }else if(scope.output instanceof Array){
-                            console.log('output is array')
+                            vc('output is array')
                             scope.output.push(it);
                         }else{
                             scope.output=it;
                         }
-                        scope.filterSearch = null;
+                        vc('ITEM',it,me)
+                        scope.filterSearch = it && me && me.srcElement && me.srcElement.innerText;
                     }else{
                         scope.filterSearch = it;
                     }
                     scope.filteredItems = [];
-                    console.log('PARENT NOW',scope.$parent,scope.output)
+                    vc('PARENT NOW',scope.$parent,scope.output)
                 };
-                console.log('THIS SAS IS',element[0].querySelector('.sas-cont'))
+                vc('THIS SAS IS',element[0].querySelector('.sas-cont'))
                 scope.hilite = t => {
                     const termString = scope.subItem && t[scope.subItem]?t[scope.subItem]:typeof t!=='string'?JSON.stringify(t):t,
                     pos = termString.indexOf(scope.filterSearch);
@@ -121,7 +124,8 @@ const app = angular
                 element[0].querySelector('.sas-inp').addEventListener(
                     "focus",
                     function (e) {
-                        // console.log('focus event', e,this)
+                        // vc('focus event', e,this)
+                        scope.filterSearch = null;
                         scope.hasFocus = true;
                         scope.$digest();
                     },
@@ -131,18 +135,19 @@ const app = angular
                     "blur",
                     function (e) {
                         setTimeout(function () {
-                            console.log('event',e,'new Focus',document.elementFromPoint(scope.x,scope.y))
+                            vc('event',e,'new Focus',document.elementFromPoint(scope.x,scope.y))
                             if(!document.elementFromPoint(scope.x,scope.y).className.includes('simple-auto-suggest-suggestion')){
-
                                 scope.hasFocus = false;
                                 scope.$digest();
+                            }else{
+                                console.log('Clicked autosuggest item!')
                             }
-                        }, 1);
+                        }, 5);
                     },
                     false
                 );
                 element[0].addEventListener('mousemove',function simpMouse(e){
-                    // console.log('MOUSE POS (client)',e.clientX,e.clientY)
+                    // vc('MOUSE POS (client)',e.clientX,e.clientY)
                     scope.x = e.clientX;
                     scope.y = e.clientY;
                 })
@@ -174,10 +179,10 @@ const app = angular
                         .getBoundingClientRect();
                 }, 1);
                 scope.focFunc = e =>{
-                    console.log('ng fokis',e)
+                    vc('ng fokis',e)
                 }
                 scope.blurFunc = e =>{
-                    console.log('ng blerr',e)
+                    vc('ng blerr',e)
                 }
                 scope.showNFBox = false;
                 scope.doFilter = () => {
@@ -192,7 +197,7 @@ const app = angular
                             filterOkay &&
                             scope.filterFn(scope.linkedItems, scope.filterSearch)) ||
                         null;
-                    console.log(
+                    vc(
                         "FILTERED STOOF", scope.filteredItems,
                         "SEARCH TERM",
                         scope.filterSearch,
@@ -220,9 +225,9 @@ const app = angular
                         scope.filterSearch = it;
                     }
                     scope.filteredItems = [];
-                    console.log('PARENT NOW',scope.$parent,scope.output)
+                    vc('PARENT NOW',scope.$parent,scope.output)
                 };
-                console.log('THIS SAS IS',element[0].querySelector('.sas-cont'))
+                vc('THIS SAS IS',element[0].querySelector('.sas-cont'))
                 scope.hilite = t => {
                     const pos = t.indexOf(scope.filterSearch);
                     return $sce.trustAsHtml(
@@ -234,7 +239,7 @@ const app = angular
                 element[0].querySelector('.sas-inp').addEventListener(
                     "focus",
                     function (e) {
-                        // console.log('focus event', e,this)
+                        // vc('focus event', e,this)
                         scope.hasFocus = true;
                         scope.$digest();
                     },
@@ -244,7 +249,7 @@ const app = angular
                     "blur",
                     function (e) {
                         setTimeout(function () {
-                            console.log('event',e,'new Focus',document.elementFromPoint(scope.x,scope.y))
+                            vc('event',e,'new Focus',document.elementFromPoint(scope.x,scope.y))
                             if(!document.elementFromPoint(scope.x,scope.y).className.includes('simple-auto-suggest-suggestion')){
 
                                 scope.hasFocus = false;
@@ -255,7 +260,7 @@ const app = angular
                     false
                 );
                 window.addEventListener('mousemove',function simpMouse(e){
-                    // console.log('MOUSE POS (client)',e.clientX,e.clientY)
+                    // vc('MOUSE POS (client)',e.clientX,e.clientY)
                     scope.x = e.clientX;
                     scope.y = e.clientY;
                 })
